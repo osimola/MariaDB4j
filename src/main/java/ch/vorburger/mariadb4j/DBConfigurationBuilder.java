@@ -19,8 +19,11 @@
  */
 package ch.vorburger.mariadb4j;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.Arrays;
+import java.util.List;
 
 import org.apache.commons.lang3.SystemUtils;
 
@@ -45,8 +48,47 @@ public class DBConfigurationBuilder {
 	protected DBConfigurationBuilder() {
 	}
 
+	public static final List<String> MYSQLD_BINARIES = Arrays.asList("bin/mysqld", "sbin/mysqld");
+	public static final File[] basedirCandidates = {
+		new File("/usr/local"),
+		new File("/usr/")
+	};
+
+	@SuppressWarnings("unchecked")
+	public static final List<List<String>> requiredFiles = Arrays.asList(
+			Arrays.asList("bin/my_print_defaults"),
+			Arrays.asList("bin/mysql_install_db"),
+			Arrays.asList("bin/mysqlcheck"),
+			MYSQLD_BINARIES);
+
+
 	public String getBaseDir() {
 		return baseDir;
+	}
+
+	// Todo: Windows directories?
+	public void detectBaseDir() {
+		for (File baseCandidate: basedirCandidates) {
+			boolean found = true;
+			for (List<String> filenames : requiredFiles) {
+				boolean fileFound = false;
+				for (String filename : filenames) {
+					if (new File(baseCandidate, filename).exists()) {
+						fileFound = true;
+						break;
+					}
+				}
+				if (!fileFound)
+					found = false;
+			}
+
+			if (found) {
+				setBaseDir(baseCandidate.getAbsolutePath());
+				return;
+			}
+		}
+
+		throw new RuntimeException("Could not find MariaDB / MySQL installation");
 	}
 
 	public void setBaseDir(String baseDir) {

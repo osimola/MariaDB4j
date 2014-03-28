@@ -6,16 +6,28 @@ MariaDB is "a backward compatible, drop-in replacement of the MySQL(R) Database 
 * FAQ: http://kb.askmonty.org/en/mariadb-faq
 * Wikipedia: http://en.wikipedia.org/wiki/MariaDB
 
+<<<<<<< master
 MariaDB4j is a Java "launcher" for MariaDB, allowing to use it from Java without ANY installation / external dependencies.  Read again: You do NOT have to have MariaDB binaries installed on your system to use MariaDB4j!
+=======
+MariaDB4j/noEmbedded is a Java "launcher" for MariaDB, allowing to launch a separate instance from Java
+>>>>>>> HEAD~3
 
 How?
 ----
-MariaDB binaries are in the MariaDB4j JAR and, by default, extracted to a temporary base directory on the fly, then started by Java:
+The system-installed MariaDB files are detected and then launched
 
 1. Install the database with a particular configuration, using short-cut:
 
 ```java
 DB db = DB.newEmbeddedDB(3306);
+```
+
+or
+
+```
+Configuration config = new Configuration();
+config.detectFreePort();
+DB db = DB.newEmbeddedDB(config);
 ```
 
 2. (Optional) The data directory will, by default, be in a temporary directory too, and will automatically get scratched at every restart; this
@@ -61,21 +73,17 @@ source. -- MariaDB4j's Maven coordinates are:
 
 Why?
 ----
-Being able to start a database without any installation / external dependencies 
-is useful in a number of scenarios, such as all-in-one application packages,
-or for running integration tests without depending on the installation,
-set-up and up-and-running of an externally managed server.
-You could also use this easily run some DB integration tests in parallel but completely isolated,
-as the MariaDB4j API explicitly support this.
 
-Java developers frequently use pure Java databases such as H2, hsqldb (HyperSQL), Derby / JavaDB for this purpose.
-This library brings the advantage of the installation-free DB approach, while maintaining MariaDB (and thus MySQL) compatibility.
+Being able to start a separate database instance is useful in one
+specific scenario: running unit test cases against MySQL legacy
+database schema that has too many implementation-specific details to
+be emulated with pure Java databases such as H2, hsqldb (HyperSQL),
+Derby / JavaDB. With this hack, it is possible to run database related
+unit tests in parallel and without configuring access to the system
+database.
 
 It was initially developed for use in Mifos, the "Open Source Technology that accelerates Microfinance", see http://mifos.org.
 
-Build?
-------
-[![Build Status](https://secure.travis-ci.org/vorburger/MariaDB4j.png?branch=master)](http://travis-ci.org/vorburger/MariaDB4j/)
 
 Who?
 ----

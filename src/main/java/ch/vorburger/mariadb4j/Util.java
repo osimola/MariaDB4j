@@ -19,17 +19,13 @@
  */
 package ch.vorburger.mariadb4j;
 
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.core.io.support.ResourcePatternResolver;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
 
 /**
  * File utilities
@@ -72,52 +68,5 @@ public class Util {
 	 */
 	public static boolean isTemporaryDirectory(String directory) {
 		return directory.startsWith(SystemUtils.JAVA_IO_TMPDIR);
-	}
-
-	public static void forceExecutable(File executableFile) throws IOException {
-		if (executableFile.exists() && !executableFile.canExecute()) {
-			boolean succeeded = executableFile.setExecutable(true);
-			if (succeeded) {
-				logger.info("chmod +x " + executableFile.toString() + " (using java.io.File.setExecutable)");
-			}
-			else {
-				throw new IOException("Failed to do chmod +x " + executableFile.toString() + " using java.io.File.setExecutable, which will be a problem on *NIX...");
-			}
-		}
-	}
-
-	/**
-	 * Extract files from a package on the classpath into a directory.
-	 * @param packagePath e.g. "com/stuff" (always forward slash not backslash, never dot)
-	 * @param toDir directory to extract to
-	 * @return int the number of files copied
-	 * @throws java.io.IOException if something goes wrong, including if nothing was found on classpath
-	 */
-	public static int extractFromClasspathToFile(String packagePath, File toDir) throws IOException {
-		String locationPattern = "classpath*:" + packagePath + "/**";
-		ResourcePatternResolver resourcePatternResolver = new PathMatchingResourcePatternResolver();
-		Resource[] resources = resourcePatternResolver.getResources(locationPattern);
-		if (resources.length == 0) {
-			throw new IOException("Nothing found at " + locationPattern);
-		}
-		int counter = 0;
-		for (Resource resource : resources) {
-			if (resource.isReadable()) { // Skip hidden or system files
-				URL url = resource.getURL();
-				String path = url.toString();
-				if (!path.endsWith("/")) { // Skip directories
-					int p = path.lastIndexOf(packagePath) + packagePath.length();
-					path = path.substring(p);
-					File targetFile = new File(toDir, path);
-					long len = resource.contentLength();
-					if (!targetFile.exists() || targetFile.length() != len) { // Only copy new files
-						FileUtils.copyURLToFile(url, targetFile);
-						counter++;
-					}
-				}
-			}
-		}
-		logger.info("Unpacked {} files from {} to {}", new Object[] { counter, locationPattern, toDir });
-		return counter;
 	}
 }

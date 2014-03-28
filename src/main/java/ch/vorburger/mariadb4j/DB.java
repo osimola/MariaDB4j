@@ -63,7 +63,6 @@ public class DB {
 	public static DB newEmbeddedDB(DBConfiguration config) throws ManagedProcessException {
 		DB db = new DB(config);
 		db.prepareDirectories();
-		db.unpackEmbeddedDb();
 		db.install();
 		return db;
 	}
@@ -113,7 +112,19 @@ public class DB {
 	public void start() throws ManagedProcessException {
 		logger.info("Starting up the database...");
 		try {
-			ManagedProcessBuilder builder = new ManagedProcessBuilder(baseDir.getAbsolutePath() + "/bin/mysqld");
+			// One of these should exist
+			
+			ManagedProcessBuilder builder = null;
+			for (String binary: DBConfigurationBuilder.MYSQLD_BINARIES) {
+				if (new File(baseDir.getAbsoluteFile(), binary).exists()) {
+					builder = new ManagedProcessBuilder(new File(baseDir.getAbsolutePath(), binary));
+					break;
+				}
+			}
+			if (builder == null) {
+				throw new RuntimeException("Could not find Mysqld binary");
+			}
+			
 			builder.addArgument("--no-defaults");  // *** THIS MUST COME FIRST ***
 			builder.addArgument("--console");
 			builder.addArgument("--skip-grant-tables");
@@ -144,7 +155,7 @@ public class DB {
 	 * @throws SQLException if any errors occur getting the connection
 	 */
 	public Connection getConnection() throws SQLException {
-		return DriverManager.getConnection("jdbc:mysql://localhost:"+config.getPort() + "/test", "root", "");
+		return DriverManager.getConnection("jdbc:mysql://localhost:"+config.getPort(), "root", "");
 	}
 
 	public void source(String resource) throws ManagedProcessException {
@@ -186,6 +197,7 @@ public class DB {
 			builder.setInputStream(inputStream);
 			ManagedProcess process = builder.build();
 			process.start();
+			
 			process.waitForExit();
 		}
 		catch (Exception e) {
@@ -209,41 +221,15 @@ public class DB {
 	}
 
 	/**
-	 * Based on the current OS, unpacks the appropriate version of MariaDB to the
-	 * file system based on the configuration
-	 */
-	protected void unpackEmbeddedDb() {
-		if (config.getBinariesClassPathLocation() == null) {
-			logger.info("Not unpacking any embedded database (as BinariesClassPathLocation configuration is null)");
-			return;
-		}
-		
-		logger.info("Unpacking the embedded database...");
-		try {
-			Util.extractFromClasspathToFile(config.getBinariesClassPathLocation(), baseDir);
-			if (!SystemUtils.IS_OS_WINDOWS) {
-				Util.forceExecutable(new File(baseDir, "bin/my_print_defaults"));
-				Util.forceExecutable(new File(baseDir, "bin/mysql_install_db"));
-				Util.forceExecutable(new File(baseDir, "bin/mysqld"));
-				Util.forceExecutable(new File(baseDir, "bin/mysql"));
-			}
-		}
-		catch (IOException e) {
-			throw new RuntimeException("Error unpacking embedded db", e);
-		}
-		logger.info("Database successfully unpacked to " + baseDir.getAbsolutePath());
-	}
-
-	/**
 	 * If the data directory specified in the configuration is a temporary directory,
 	 * this deletes any previous version.  It also makes sure that the directory exists.
 	 */
 	protected void prepareDirectories() throws ManagedProcessException {
-		logger.info("Preparing base directory...");
-		baseDir = Util.getDirectory(config.getBaseDir() + SystemUtils.FILE_SEPARATOR + config.getPort());
+		logger.info("Preparing base directory {}", config.getBaseDir());
+		baseDir = Util.getDirectory(config.getBaseDir());
 		logger.info("Base directory prepared.");
 
-		logger.info("Preparing data directory...");
+		logger.info("Preparing data directory {}", config.getDataDir() + SystemUtils.FILE_SEPARATOR + config.getPort());
 		try {
 			String dataDirPath = config.getDataDir() + SystemUtils.FILE_SEPARATOR + config.getPort();
 			if (Util.isTemporaryDirectory(dataDirPath)) {

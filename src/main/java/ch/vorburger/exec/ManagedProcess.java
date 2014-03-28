@@ -157,17 +157,6 @@ public class ManagedProcess {
 			executor.setProcessDestroyer(shutdownHookProcessDestroyer);
 		}
 		
-		if (commandLine.isFile()) {
-			try {
-				Util.forceExecutable(new File(commandLine.getExecutable()));
-			}
-			catch (Exception e) {
-				throw new ManagedProcessException("Unable to make command executable", e);
-			}
-		} else {
-			logger.debug(commandLine.getExecutable() + " is not a java.io.File, so it won't be made executable (which MAY be a problem on *NIX, but not for sure)");
-		}
-		
 		try {
 			executor.execute(commandLine, environment, resultHandler);
 		}

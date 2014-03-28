@@ -19,6 +19,9 @@
  */
 package ch.vorburger.mariadb4j.tests;
 
+import java.sql.Connection;
+import java.util.List;
+
 import junit.framework.Assert;
 
 import org.apache.commons.dbutils.DbUtils;
@@ -32,6 +35,9 @@ import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import java.sql.Connection;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Tests the functioning of MariaDB4j
  * Sample / Tutorial illustrating how to use MariaDB4j.
@@ -39,11 +45,14 @@ import java.util.List;
  * @author Michael Seaton
  */
 public class MariaDB4jSampleTutorialTest {
+	private static final Logger logger = LoggerFactory.getLogger(MariaDB4jSampleTutorialTest.class);
 
 	@Test
 	public void testEmbeddedMariaDB4j() throws Exception {
 		DBConfigurationBuilder config = DBConfigurationBuilder.newBuilder();
 		config.detectFreePort();
+		config.detectBaseDir();
+		
 		DB db = DB.newEmbeddedDB(config.build());
 		db.start();
 
@@ -53,6 +62,8 @@ public class MariaDB4jSampleTutorialTest {
 			QueryRunner qr = new QueryRunner();
 
 			// Should be able to create a new table
+			qr.update(conn, "CREATE DATABASE test");
+			qr.update(conn, "USE test");
 			qr.update(conn, "CREATE TABLE hello(world VARCHAR(100))");
 
 			// Should be able to insert into a table
