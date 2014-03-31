@@ -33,8 +33,6 @@ import org.apache.commons.lang3.SystemUtils;
  */
 public class DBConfigurationBuilder {
 
-	private String databaseVersion = SystemUtils.IS_OS_MAC ? "mariadb-5.5.34" : "mariadb-5.5.33a";
-	
 	private String baseDir = SystemUtils.JAVA_IO_TMPDIR + "/MariaDB4j/base";
 	private String dataDir = SystemUtils.JAVA_IO_TMPDIR + "/MariaDB4j/data";
 	private String socket = SystemUtils.JAVA_IO_TMPDIR + "/MariaDB4j/mysql.sock";
@@ -48,7 +46,7 @@ public class DBConfigurationBuilder {
 	protected DBConfigurationBuilder() {
 	}
 
-	public static final List<String> MYSQLD_BINARIES = Arrays.asList("bin/mysqld", "sbin/mysqld");
+	public static final List<String> MYSQLD_BINARIES = Arrays.asList("bin/mysqld", "sbin/mysqld", "libexec/mysqld");
 	public static final File[] basedirCandidates = {
 		new File("/usr/local"),
 		new File("/usr/")
@@ -142,14 +140,6 @@ public class DBConfigurationBuilder {
 	}
 	
 	public DBConfiguration build() {
-		return new DBConfiguration.Impl(port, socket, getBinariesClassPathLocation(), baseDir, dataDir);
-	}
-
-	protected String getBinariesClassPathLocation() {
-		StringBuilder binariesClassPathLocation = new StringBuilder();
-		binariesClassPathLocation.append(getClass().getPackage().getName().replace(".", "/"));
-		binariesClassPathLocation.append("/").append(databaseVersion).append("/");
-		binariesClassPathLocation.append(SystemUtils.IS_OS_WINDOWS ? "win32" : SystemUtils.IS_OS_MAC ? "osx" : "linux");
-		return binariesClassPathLocation.toString();
+		return new DBConfiguration.Impl(port, socket, null, baseDir, dataDir);
 	}
 }
