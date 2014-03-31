@@ -3,12 +3,12 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>ch.vorburger.mariaDB4j</groupId>
-	<artifactId>mariaDB4j</artifactId>
+	<artifactId>mariaDB4j-noembedded</artifactId>
 	<version>2.0-SNAPSHOT</version>
 
 	<name>MariaDB4j</name>
 	<description>Java wrapper / launcher for MariaDB</description>
-	<url>https://github.com/vorburger/MariaDB4j</url>
+	<url>https://github.com/osimola/MariaDB4j/no_embedded</url>
 	<inceptionYear>2012</inceptionYear>
 
 	<licenses>
@@ -24,18 +24,17 @@
 		</license>
 	</licenses>
 
-	<scm>
-		<connection>https://github.com/vorburger/MariaDB4j.git</connection>
-		<developerConnection>scm:git:git@github.com:vorburger/MariaDB4j.git</developerConnection>
-		<url>https://github.com/vorburger/MariaDB4j</url>
-	</scm>
-
 	<developers>
 		<developer>
 			<id>vorburger</id>
 			<name>Michael Vorburger</name>
 			<email>mike@vorburger.ch</email>
 			<url>http://www.vorburger.ch</url>
+		</developer>
+		<developer>
+			<id>osimola</id>
+			<name>Juhani Simola</name>
+			<email>juhani.simola@iki.fi</email>
 		</developer>
 	</developers>
 
