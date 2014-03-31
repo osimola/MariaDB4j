@@ -61,8 +61,9 @@ public class MariaDB4jSampleTutorialTest {
 			conn = db.getConnection();
 			QueryRunner qr = new QueryRunner();
 
-			// Should be able to create a new table
-			qr.update(conn, "CREATE DATABASE test");
+			// Should be able to create a new table. This exists by default on
+			// most OSes, not on Ubuntu version. Why?
+			qr.update(conn, "CREATE DATABASE IF NOT EXISTS test");
 			qr.update(conn, "USE test");
 			qr.update(conn, "CREATE TABLE hello(world VARCHAR(100))");
 
