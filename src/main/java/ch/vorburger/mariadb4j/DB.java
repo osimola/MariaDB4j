@@ -124,10 +124,11 @@ public class DB {
 			if (!SystemUtils.IS_OS_WINDOWS) {
 				builder.addArgument("--socket=" + config.getSocket());
 			}
+			builder.setMessageToWaitFor("mysqld: ready for connections.");
             logger.info("mysqld executable: " + builder.getExecutable());
 			mysqldProcess = builder.build();
 			mysqldProcess.start();
-			mysqldProcess.waitForConsoleMessage("mysqld: ready for connections.");
+			mysqldProcess.waitForConsoleMessage();
 			mysqldProcess.setDestroyOnShutdown(true);
 			cleanupOnExit();
 		}

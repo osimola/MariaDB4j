@@ -19,6 +19,9 @@
  */
 package ch.vorburger.exec;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.exec.LogOutputStream;
 
 
@@ -33,7 +36,7 @@ import org.apache.commons.exec.LogOutputStream;
 class CheckingConsoleOutputStream extends LogOutputStream {
 
 	private final String watchOutFor;
-	private boolean seenIt;
+	private final CountDownLatch latch = new CountDownLatch(1);
 	
 	CheckingConsoleOutputStream(String watchOutFor) {
 		if (watchOutFor.contains("\n")) {
@@ -45,11 +48,15 @@ class CheckingConsoleOutputStream extends LogOutputStream {
 	@Override
 	protected void processLine(String line, @SuppressWarnings("unused") int level) {
 		if (line.contains(watchOutFor))
-			seenIt = true;
+			latch.countDown();
 	}
 
 	public boolean hasSeenIt() {
-		return seenIt;
+		return latch.getCount() == 0;
+	}
+	
+	public boolean await(long timeout, TimeUnit unit) throws InterruptedException {
+		return latch.await(timeout, unit);
 	}
 
 }

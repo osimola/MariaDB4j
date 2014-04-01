@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecuteResultHandler;
@@ -65,6 +66,7 @@ public class ManagedProcess {
 	private final ExecuteWatchdog watchDog = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
 	private final ProcessDestroyer shutdownHookProcessDestroyer = new LoggingShutdownHookProcessDestroyer();
 	private final Map<String, String> environment;
+	private final String messageToWaitFor;
 	private final InputStream input;
 
 	private boolean isAlive = false;
@@ -72,6 +74,7 @@ public class ManagedProcess {
 	private String procShortName;
 	private int consoleBufferMaxLines = 50;
 	private RollingLogOutputStream console;
+	private CheckingConsoleOutputStream checkingConsoleOutputStream;
 	private MultiOutputStream stdouts;
 	private MultiOutputStream stderrs;
 
@@ -88,9 +91,10 @@ public class ManagedProcess {
 	 * @param directory Working directory, or null
 	 * @param environment Environment Variable.
 	 */
-	ManagedProcess(CommandLine commandLine, File directory, Map<String, String> environment, InputStream input) {
+	ManagedProcess(CommandLine commandLine, File directory, Map<String, String> environment, InputStream input, String messageToWaitFor) {
 		this.commandLine = commandLine;
 		this.environment = environment;
+		this.messageToWaitFor = messageToWaitFor;
 		if (input != null) {
 			this.input = buffer(input);
 		} else {
@@ -136,6 +140,12 @@ public class ManagedProcess {
 		String pid = procShortName();
 		stdouts.addOutputStream(new SLF4jLogOutputStream(logger, pid, Type.stdout));
 		stderrs.addOutputStream(new SLF4jLogOutputStream(logger, pid, Type.stderr));
+		
+		if (messageToWaitFor != null) {
+			checkingConsoleOutputStream = new CheckingConsoleOutputStream(messageToWaitFor);
+			stdouts.addOutputStream(checkingConsoleOutputStream);
+			stderrs.addOutputStream(checkingConsoleOutputStream);
+		}
 		
 		if (consoleBufferMaxLines > 0) {
 			console = new RollingLogOutputStream(consoleBufferMaxLines);
@@ -348,43 +358,26 @@ public class ManagedProcess {
 	 * @param messageInConsole text to wait for in the STDOUT/STDERR of the external process
 	 * @throws ManagedProcessException for problems such as if the process already exited (without the message ever appearing in the Console) 
 	 */
-	public void waitForConsoleMessage(String messageInConsole) throws ManagedProcessException {
-		CheckingConsoleOutputStream checkingConsoleOutputStream = new CheckingConsoleOutputStream(messageInConsole);
-		stdouts.addOutputStream(checkingConsoleOutputStream);
-		stderrs.addOutputStream(checkingConsoleOutputStream);
-		
-		try {
-			// Code review comments most welcome; I'm not 100% sure the thread concurrency time is right; is there a chance a console message may be "missed" here, and we block forever?
-			if (getConsole().contains(messageInConsole)) {
-				logger.info("Asked to wait for \"\"{}\"\" from {}, but already seen it recently in Console, so returning immediately", messageInConsole, procLongName());
-				return;
-			}
-			
-			// MUST do this, else will block forever too easily
-			String unexpectedExitMsg = "Asked to wait for \"" + messageInConsole + "\" from " + procLongName() + ", but it already exited! (without that message in console)";
-			if (!isAlive()) {
-				throw new ManagedProcessException(unexpectedExitMsg);
-			}
-			
-			final int SLEEP_TIME_MS = 50;
-			logger.info("Thread is now going to wait for \"\"{}\"\" to appear in Console output of process {}", messageInConsole, procLongName());
-	        while (!checkingConsoleOutputStream.hasSeenIt() && isAlive()) {
-	            try {
-					Thread.sleep(SLEEP_TIME_MS);
-				} catch (InterruptedException e) {
-					throw handleInterruptedException(e);
-				}
-	        }
+	public void waitForConsoleMessage() throws ManagedProcessException,
+			InterruptedException {
+		final int SLEEP_TIME_MS = 50;
+		logger.info(
+				"Thread is now going to wait for \"\"{}\"\" to appear in Console output of process {}",
+				messageToWaitFor, procLongName());
+		while (!checkingConsoleOutputStream.await(SLEEP_TIME_MS,
+				TimeUnit.MILLISECONDS) && isAlive())
+			;
 
-	        // If we got out of the while() loop due to !isAlive() instead of messageInConsole, then throw the same exception as above!
-			if (!checkingConsoleOutputStream.hasSeenIt()) {
-				throw new ManagedProcessException(unexpectedExitMsg);
-			}
-		}        
-        finally {
-			stdouts.removeOutputStream(checkingConsoleOutputStream);
-			stderrs.removeOutputStream(checkingConsoleOutputStream);
-        }
+		// If we got out of the while() loop due to !isAlive() then throw an
+		// exception!
+		if (!checkingConsoleOutputStream.hasSeenIt()) {
+			String unexpectedExitMsg = "Asked to wait for \""
+					+ messageToWaitFor
+					+ "\" from "
+					+ procLongName()
+					+ ", but it already exited! (without that message in console)";
+			throw new ManagedProcessException(unexpectedExitMsg);
+		}
 	}
 
 	// ---
