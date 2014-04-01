@@ -47,6 +47,7 @@ public class ManagedProcessBuilder {
 	protected final Map<String,String> environment;
 	protected File directory;
 	private InputStream inputStream;
+	private String messageToWaitFor;
 
 	public ManagedProcessBuilder(String executable) throws ManagedProcessException {
 		commonsExecCommandLine = new CommandLine(executable);
@@ -125,13 +126,19 @@ public class ManagedProcessBuilder {
     // ----
     
 	public ManagedProcess build() {
-		return new ManagedProcess(getCommandLine(), directory, environment, inputStream);
+		return new ManagedProcess(getCommandLine(), directory, environment, inputStream, messageToWaitFor);
 	}
 
-	public void setInputStream(InputStream inputStream) {
+	public ManagedProcessBuilder setInputStream(InputStream inputStream) {
 		this.inputStream = inputStream;
+		return this;
 	}
 
+	public ManagedProcessBuilder setMessageToWaitFor(String message) {
+		this.messageToWaitFor = message;
+		return this;
+	}
+	
 	/* package-local... let's keep ch.vorburger.exec's API separate from Apache Commons Exec, so it COULD be replaced */  
 	CommandLine getCommandLine() {
 		if (getWorkingDirectory() == null) {

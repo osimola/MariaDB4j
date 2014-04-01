@@ -21,7 +21,6 @@ package ch.vorburger.exec;
 
 import junit.framework.Assert;
 import org.apache.commons.lang3.SystemUtils;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -37,7 +36,8 @@ public class ManagedProcessTest {
 
 	@Test
 	public void testBasics() throws Exception {
-		ManagedProcess p = new ManagedProcessBuilder("someExec").build();
+		ManagedProcess p = new ManagedProcessBuilder("someExec")
+				.setMessageToWaitFor("Never say never...").build();
 		assertThat(p.isAlive(), is(false));
 		try {
 			p.destroy();
@@ -70,7 +70,7 @@ public class ManagedProcessTest {
 			// as expected
 		}
 		try {
-			p.waitForConsoleMessage("Never say never...");
+			p.waitForConsoleMessage();
 			Assert.fail("Should have thrown an ManagedProcessException");
 		} catch (ManagedProcessException e) {
 			// as expected
@@ -91,38 +91,36 @@ public class ManagedProcessTest {
 	
 	@Test
 	public void testWaitForSeenMessageIfAlreadyTerminated() throws Exception {
-		SomeSelfTerminatingExec exec = someSelfTerminatingExec();
-		ManagedProcess p = exec.proc;
+		ManagedProcess p = someSelfTerminatingExec();
 		p.start();
 		// for this test, do NOT use any wait*() anything here, just give it a moment...
 		Thread.sleep(1000);
 		// by now this process should have terminated itself
 		// but this should not cause this to hang, but must return silently:
-		p.waitForConsoleMessage(exec.msgToWaitFor);
+		p.waitForConsoleMessage();
 	}
 
 	@Test(expected=ManagedProcessException.class)
 	public void testWaitForWrongMessageIfAlreadyTerminated() throws Exception {
-		ManagedProcess p = someSelfTerminatingExec().proc;
+		ManagedProcess p = someSelfTerminatingExec("some console message which will never appear");
 		p.start();
 		// for this test, do NOT use any wait*() anything here, just give it a moment...
 		Thread.sleep(1000);
 		// by now this process should have terminated itself
 		// but this should not cause this to hang, but must throw an ManagedProcessException
-		p.waitForConsoleMessage("some console message which will never appear");
+		p.waitForConsoleMessage();
 	}
 
 	@Test
 	public void testSelfTerminatingExec() throws Exception {
-		SomeSelfTerminatingExec exec = someSelfTerminatingExec();
-		ManagedProcess p = exec.proc;
+		ManagedProcess p = someSelfTerminatingExec();
 
 		assertThat(p.isAlive(), is(false));
 		p.setConsoleBufferMaxLines(25);
 		p.start();
 		// can't assertThat(p.isAlive(), is(true)); - if p finishes too fast, this fails - unreliable test :(
 		
-		p.waitForConsoleMessage(exec.msgToWaitFor);
+		p.waitForConsoleMessage();
 		
 		p.waitForExit();
 		p.exitValue(); // just making sure it works, don't check, as Win/NIX diff.
@@ -143,30 +141,30 @@ public class ManagedProcessTest {
 		System.out.println(recentConsoleOutput);
 	}
 
-	class SomeSelfTerminatingExec {
-		ManagedProcess proc;
-		String msgToWaitFor;
+	protected ManagedProcess someSelfTerminatingExec() throws UnknownPlatformException, MariaDB4jException, ManagedProcessException {
+		return someSelfTerminatingExec(null);
 	}
 	
-	protected SomeSelfTerminatingExec someSelfTerminatingExec() throws UnknownPlatformException, MariaDB4jException, ManagedProcessException {
-		SomeSelfTerminatingExec r = new SomeSelfTerminatingExec();
+	protected ManagedProcess someSelfTerminatingExec(String messageToWait)
+			throws UnknownPlatformException, MariaDB4jException,
+			ManagedProcessException {
 		if (SystemUtils.IS_OS_WINDOWS) {
-			r.proc = new ManagedProcessBuilder("cmd.exe").addArgument("/C").addArgument("dir").addArgument("/X").build();
-			r.msgToWaitFor = "bytes free";
+			return new ManagedProcessBuilder("cmd.exe")
+					.addArgument("/C").addArgument("dir").addArgument("/X")
+					.setMessageToWaitFor(messageToWait == null ? "bytes free" : messageToWait).build();
+		} else if (SystemUtils.IS_OS_SOLARIS) {
+			return new ManagedProcessBuilder("true")
+					.addArgument("--version")
+					.setMessageToWaitFor(messageToWait == null ? "true (GNU coreutils)" : messageToWait).build();
+		} else if (SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC) {
+			return new ManagedProcessBuilder("echo")
+					.addArgument("Lorem ipsum dolor sit amet, consectetur adipisci elit, sed eiusmod tempor incidunt ut \nlabore et dolore magna aliqua.")
+					.setMessageToWaitFor(messageToWait == null ? "incidunt" : messageToWait)
+					.build();
+		} else {
+			throw new MariaDB4jException(
+					"Unexpected Platform, improve the test dude...");
 		}
-		else if (SystemUtils.IS_OS_SOLARIS) {
-			r.proc = new ManagedProcessBuilder("true").addArgument("--version").build();
-			r.msgToWaitFor = "true (GNU coreutils)";
-		}
-        else if (SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC) {
-        	r.proc = new ManagedProcessBuilder("echo").addArgument("Lorem ipsum dolor sit amet, consectetur adipisci elit, sed eiusmod tempor incidunt ut \nlabore et dolore magna aliqua.").build();
-        	r.msgToWaitFor = "incidunt";
-        }
-		else {
-			throw new MariaDB4jException("Unexpected Platform, improve the test dude...");
-		}
-		
-		return r;
 	}
 
 	@Test
