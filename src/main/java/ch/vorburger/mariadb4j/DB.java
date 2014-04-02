@@ -19,6 +19,7 @@
  */
 package ch.vorburger.mariadb4j;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -150,14 +151,28 @@ public class DB {
 	}
 	
 	/**
-	 * Takes in a string that represents a resource on the classpath and sources it via mysql
-	 * @param resource the resource to source
+	 * Takes in a string that represents a resource on the classpath and sources
+	 * it via mysql
+	 * 
+	 * @param resource
+	 *            the resource to source
 	 */
-	public void source(String resource, String username, String password, String dbName) throws ManagedProcessException {
+	public void source(String resource, String username, String password,
+			String dbName) throws ManagedProcessException {
 		logger.info("Sourcing a script located at: " + resource);
-		try {
-			InputStream from = getClass().getClassLoader().getResourceAsStream(resource);
+		InputStream input = getClass().getClassLoader().getResourceAsStream(
+				resource);
+		source(input, username, password, dbName);
+	}
 
+	/**
+	 * Takes in an InputStream and sources it via mysql
+	 * 
+	 * @param resource
+	 *            the resource to source
+	 */
+	public void source(InputStream inputStream, String username, String password, String dbName) throws ManagedProcessException {
+		try {
 			ManagedProcessBuilder builder = new ManagedProcessBuilder(new File(baseDir, "bin/mysql"));
 			builder.setWorkingDirectory(baseDir);
 			if (username != null)
@@ -167,7 +182,7 @@ public class DB {
 			if (dbName != null)
 				builder.addArgument("-D" + dbName);
 			builder.addArgument("--socket=" + config.getSocket());
-			builder.setInputStream(from);
+			builder.setInputStream(inputStream);
 			ManagedProcess process = builder.build();
 			process.start();
 			process.waitForExit();
