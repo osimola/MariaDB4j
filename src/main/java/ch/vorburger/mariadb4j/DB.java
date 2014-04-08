@@ -19,7 +19,6 @@
  */
 package ch.vorburger.mariadb4j;
 
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -113,7 +112,7 @@ public class DB {
 		logger.info("Starting up the database...");
 		try {
 			// One of these should exist
-			
+
 			ManagedProcessBuilder builder = null;
 			for (String binary: DBConfigurationBuilder.MYSQLD_BINARIES) {
 				if (new File(baseDir.getAbsoluteFile(), binary).exists()) {
@@ -124,7 +123,7 @@ public class DB {
 			if (builder == null) {
 				throw new RuntimeException("Could not find Mysqld binary");
 			}
-			
+
 			builder.addArgument("--no-defaults");  // *** THIS MUST COME FIRST ***
 			builder.addArgument("--console");
 			builder.addArgument("--skip-grant-tables");
@@ -158,35 +157,19 @@ public class DB {
 		return DriverManager.getConnection("jdbc:mysql://localhost:"+config.getPort(), "root", "");
 	}
 
-	public void source(String resource) throws ManagedProcessException {
-		source(resource, null, null, null);
-	}
-	
-	/**
-	 * Takes in a string that represents a resource on the classpath and sources
-	 * it via mysql
-	 * 
-	 * @param resource
-	 *            the resource to source
-	 */
-	public void source(String resource, String username, String password,
-			String dbName) throws ManagedProcessException {
-		logger.info("Sourcing a script located at: " + resource);
-		InputStream input = getClass().getClassLoader().getResourceAsStream(
-				resource);
+	public void source(String resource, String username, String password, String dbName) throws ManagedProcessException {
+		InputStream input = ClassLoader.getSystemResourceAsStream(resource);
 		source(input, username, password, dbName);
 	}
 
-	/**
-	 * Takes in an InputStream and sources it via mysql
-	 * 
-	 * @param resource
-	 *            the resource to source
-	 */
-	public void source(InputStream inputStream, String username, String password, String dbName) throws ManagedProcessException {
+	public 	void source(InputStream input, String username, String password, String dbName) throws ManagedProcessException {
+		source(input, username, password, dbName, null);
+	}
+
+	public void source(InputStream input, String username, String password, String dbName, File workingDir) throws ManagedProcessException {
 		try {
 			ManagedProcessBuilder builder = new ManagedProcessBuilder(new File(baseDir, "bin/mysql"));
-			builder.setWorkingDirectory(baseDir);
+			builder.setWorkingDirectory(workingDir != null ? workingDir : baseDir);
 			if (username != null)
 				builder.addArgument("-u" + username);
 			if (password != null)
@@ -194,10 +177,10 @@ public class DB {
 			if (dbName != null)
 				builder.addArgument("-D" + dbName);
 			builder.addArgument("--socket=" + config.getSocket());
-			builder.setInputStream(inputStream);
+			builder.setInputStream(input);
 			ManagedProcess process = builder.build();
 			process.start();
-			
+
 			process.waitForExit();
 		}
 		catch (Exception e) {
