@@ -42,7 +42,7 @@ public class DBConfigurationBuilder {
 	public static DBConfigurationBuilder newBuilder() {
 		return new DBConfigurationBuilder();
 	}
-	
+
 	protected DBConfigurationBuilder() {
 	}
 
@@ -107,7 +107,7 @@ public class DBConfigurationBuilder {
 
 	/**
 	 * Sets the port number.
-	 * @param port port number, or 0 to use detectFreePort() 
+	 * @param port port number, or 0 to use detectFreePort()
 	 */
 	public void setPort(int port) {
 	    if (port == 0) {
@@ -115,7 +115,13 @@ public class DBConfigurationBuilder {
 	    } else {
 	    	this.port = port;
 	    	String portStr = String.valueOf(port);
-	    	setSocket(SystemUtils.JAVA_IO_TMPDIR + "/MariaDB4j/mysql." + portStr + ".sock");
+	    	try {
+				File socketFile = File.createTempFile("mariadb4j-" + portStr + "-", ".sock");
+				socketFile.delete();
+		    	setSocket(socketFile.getAbsolutePath());
+			} catch (IOException e) {
+				throw new RuntimeException("Error creating temp file");
+			}
 	    }
 	}
 
@@ -138,7 +144,7 @@ public class DBConfigurationBuilder {
 	public void setSocket(String socket) {
 		this.socket = socket;
 	}
-	
+
 	public DBConfiguration build() {
 		return new DBConfiguration.Impl(port, socket, null, baseDir, dataDir);
 	}
