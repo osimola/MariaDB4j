@@ -134,8 +134,8 @@ public class DB {
 			if (!SystemUtils.IS_OS_WINDOWS) {
 				builder.addArgument("--socket=" + config.getSocket());
 			}
-			builder.setMessageToWaitFor("mysqld: ready for connections.");
-            logger.info("mysqld executable: " + builder.getExecutable());
+			builder.setMessageToWaitFor(builder.getExecutable() + ": ready for connections.");
+			logger.info("mysqld executable: " + builder.getExecutable());
 			mysqldProcess = builder.build();
 			mysqldProcess.start();
 			mysqldProcess.waitForConsoleMessage();
@@ -176,6 +176,8 @@ public class DB {
 				builder.addArgument("-p" + password);
 			if (dbName != null)
 				builder.addArgument("-D" + dbName);
+			if (config.getPort() > 0)
+				builder.addArgument("-P" + config.getPort());
 			builder.addArgument("--socket=" + config.getSocket());
 			builder.setInputStream(input);
 			ManagedProcess process = builder.build();

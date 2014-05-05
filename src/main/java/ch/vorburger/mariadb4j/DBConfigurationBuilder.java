@@ -46,19 +46,28 @@ public class DBConfigurationBuilder {
 	protected DBConfigurationBuilder() {
 	}
 
-	public static final List<String> MYSQLD_BINARIES = Arrays.asList("bin/mysqld", "sbin/mysqld", "libexec/mysqld");
+	public static final List<String> MYSQLD_BINARIES = toOsDependent("bin/mysqld", "sbin/mysqld", "libexec/mysqld");
 	public static final File[] basedirCandidates = {
 		new File("/usr/local"),
-		new File("/usr/")
+		new File("/usr/"),
+		new File("C:/Program Files/MariaDB 10.0")
 	};
 
 	@SuppressWarnings("unchecked")
 	public static final List<List<String>> requiredFiles = Arrays.asList(
-			Arrays.asList("bin/my_print_defaults"),
-			Arrays.asList("bin/mysql_install_db"),
-			Arrays.asList("bin/mysqlcheck"),
+			toOsDependent("bin/my_print_defaults"),
+			toOsDependent("bin/mysql_install_db"),
+			toOsDependent("bin/mysqlcheck"),
 			MYSQLD_BINARIES);
 
+	private static List<String> toOsDependent(String... paths) {
+		if (SystemUtils.IS_OS_WINDOWS) {
+			for (int i = 0; i < paths.length; i++) {
+				paths[i] = paths[i] + ".exe";
+			}
+		}
+		return Arrays.asList(paths);
+	}
 
 	public String getBaseDir() {
 		return baseDir;
@@ -110,19 +119,19 @@ public class DBConfigurationBuilder {
 	 * @param port port number, or 0 to use detectFreePort()
 	 */
 	public void setPort(int port) {
-	    if (port == 0) {
-	    	detectFreePort();
-	    } else {
-	    	this.port = port;
-	    	String portStr = String.valueOf(port);
-	    	try {
+		if (port == 0) {
+			detectFreePort();
+		} else {
+			this.port = port;
+			String portStr = String.valueOf(port);
+			try {
 				File socketFile = File.createTempFile("mariadb4j-" + portStr + "-", ".sock");
 				socketFile.delete();
-		    	setSocket(socketFile.getAbsolutePath());
+				setSocket(socketFile.getAbsolutePath());
 			} catch (IOException e) {
 				throw new RuntimeException("Error creating temp file");
 			}
-	    }
+		}
 	}
 
 	public void detectFreePort() {
