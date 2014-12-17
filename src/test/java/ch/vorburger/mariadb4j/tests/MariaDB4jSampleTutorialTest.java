@@ -28,15 +28,11 @@ import org.apache.commons.dbutils.DbUtils;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.ColumnListHandler;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
-
-import java.sql.Connection;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Tests the functioning of MariaDB4j
@@ -52,7 +48,8 @@ public class MariaDB4jSampleTutorialTest {
 		DBConfigurationBuilder config = DBConfigurationBuilder.newBuilder();
 		config.detectFreePort();
 		config.detectBaseDir();
-		
+		config.setGrantsEnabled(true);
+
 		DB db = DB.newEmbeddedDB(config.build());
 		db.start();
 

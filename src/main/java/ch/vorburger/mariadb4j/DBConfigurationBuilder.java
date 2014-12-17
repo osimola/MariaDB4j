@@ -36,6 +36,7 @@ public class DBConfigurationBuilder {
 	private String baseDir = SystemUtils.JAVA_IO_TMPDIR + "/MariaDB4j/base";
 	private String dataDir = SystemUtils.JAVA_IO_TMPDIR + "/MariaDB4j/data";
 	private String socket = SystemUtils.JAVA_IO_TMPDIR + "/MariaDB4j/mysql.sock";
+	private boolean grantsEnabled = false;
 
 	private int port = 3306; // this is just the default port - can be changed
 
@@ -154,7 +155,11 @@ public class DBConfigurationBuilder {
 		this.socket = socket;
 	}
 
+	public void setGrantsEnabled(boolean grantsEnabled) {
+		this.grantsEnabled = grantsEnabled;
+	}
+
 	public DBConfiguration build() {
-		return new DBConfiguration.Impl(port, socket, null, baseDir, dataDir);
+		return new DBConfiguration.Impl(port, socket, null, baseDir, dataDir, grantsEnabled);
 	}
 }

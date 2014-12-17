@@ -36,12 +36,15 @@ public interface DBConfiguration {
 	 * Return null (not empty) if nothing should be extracted.
 	 */
 	String getBinariesClassPathLocation();
-	
+
 	/** Base directory where DB binaries are expected to be found */
 	String getBaseDir();
 
 	/** Base directory for DB's actual data files */
 	String getDataDir();
+
+	/** Is the DB using grants? */
+	boolean isGrantsEnabled();
 
 	static class Impl implements DBConfiguration {
 		private final int port;
@@ -49,14 +52,16 @@ public interface DBConfiguration {
 		private final String binariesClassPathLocation;
 		private final String baseDir;
 		private final String dataDir;
-		
-		public Impl(int port, String socket, String binariesClassPathLocation, String baseDir, String dataDir) {
+		private final boolean grantsEnabled;
+
+		public Impl(int port, String socket, String binariesClassPathLocation, String baseDir, String dataDir, boolean grantsEnabled) {
 			super();
 			this.port = port;
 			this.socket = socket;
 			this.binariesClassPathLocation = binariesClassPathLocation;
 			this.baseDir = baseDir;
 			this.dataDir = dataDir;
+			this.grantsEnabled = grantsEnabled;
 		}
 
 		@Override
@@ -83,7 +88,11 @@ public interface DBConfiguration {
 		public String getDataDir() {
 			return dataDir;
 		}
-		
+
+		@Override
+		public boolean isGrantsEnabled() {
+			return grantsEnabled;
+		}
 	}
-	
+
 }
